@@ -1,12 +1,30 @@
 #/bin/bash
-set -x
-REGION="eu-central-1"
+#set -x
 
-aws s3api create-bucket --bucket $1 --region $REGION --create-bucket-configuration LocationConstraint=$REGION
+HOSTNAME=$1
+TARGETHOST=$2
+PROTO=$3
+ZONEID=$4
+REGION="eu-central-1"
+S3WEBSITE="s3-website.eu-central-1.amazonaws.com"
+ALIASHOSTEDZONEID="Z21DNDUVLTQW6Q"
+
+if [ -z "$HOSTNAME" ] || [ -z "$TARGETHOST" ] || [ -z "$PROTO" ] || [ -z "$ZONEID" ]; then
+  echo 'one or more variables are undefined'        
+  exit 1
+fi
+
+
+
+aws s3api create-bucket --bucket $HOSTNAME --region $REGION --create-bucket-configuration LocationConstraint=$REGION
 
 json_file=`mktemp`
-printf '{"RedirectAllRequestsTo":{"HostName": "%s","Protocol": "https"}}\n' $2 > $json_file
+printf '{"RedirectAllRequestsTo":{"HostName": "%s","Protocol": "%s"}}\n' $TARGETHOST $PROTO > $json_file
 
-aws s3api put-bucket-website --bucket $1 --website-configuration file://$json_file
+aws s3api put-bucket-website --bucket $HOSTNAME --website-configuration file://$json_file
 
-rm $json_file
+printf '{"Comment": "Created by S3redirect","Changes": [{"Action": "CREATE","ResourceRecordSet": {"Name": "%s","Type": "A","AliasTarget":{"HostedZoneId": "%s","DNSName": "%s","EvaluateTargetHealth": false}}}]}' $HOSTNAME $ALIASHOSTEDZONEID $S3WEBSITE > $json_file
+
+aws route53 change-resource-record-sets --region eu-central-1 --hosted-zone-id $ZONEID --change-batch file://$json_file
+
+#rm $json_file
