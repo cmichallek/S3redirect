@@ -1,0 +1,12 @@
+#/bin/bash
+set -x
+REGION="eu-central-1"
+
+aws s3api create-bucket --bucket $1 --region $REGION --create-bucket-configuration LocationConstraint=$REGION
+
+json_file=`mktemp`
+printf '{"RedirectAllRequestsTo":{"HostName": "%s","Protocol": "https"}}\n' $2 > $json_file
+
+aws s3api put-bucket-website --bucket $1 --website-configuration file://$json_file
+
+rm $json_file
