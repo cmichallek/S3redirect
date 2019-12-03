@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 #set -x
 
 HOSTNAME=$1
@@ -27,4 +27,4 @@ printf '{"Comment": "Created by S3redirect","Changes": [{"Action": "CREATE","Res
 
 aws route53 change-resource-record-sets --region eu-central-1 --hosted-zone-id $ZONEID --change-batch file://$json_file
 
-#rm $json_file
+rm $json_file
